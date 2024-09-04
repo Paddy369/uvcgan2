@@ -1,9 +1,9 @@
 import argparse
 import os
 import tqdm
-from PIL import Image
+from PIL import Image, ImageOps
 
-def downscale(image, out_shape, interpolation):
+def resize_image(image, out_shape, interpolation):
     if interpolation == 'bilinear':
         resample = Image.BILINEAR
     elif interpolation == 'bicubic':
@@ -65,6 +65,7 @@ def collect_images(root):
 
 def load_image(path):
     result = Image.open(path)
+    result = ImageOps.exif_transpose(result)  # Handle EXIF orientation
     return result
 
 def save_image(image, path):
@@ -73,7 +74,7 @@ def save_image(image, path):
 
     image.save(path)
 
-def downscale_images(source, images, target, shape, interpolation):
+def resize_images(source, images, target, shape, interpolation):
     for (subdir, fname) in tqdm.tqdm(images, total = len(images)):
         path_src = os.path.join(source, subdir, fname)
 
@@ -83,19 +84,27 @@ def downscale_images(source, images, target, shape, interpolation):
         os.makedirs(root_dst, exist_ok = True)
 
         image_src = load_image(path_src)
-        image_dst = downscale(image_src, shape, interpolation)
 
+        # Check dimensions
+        width, height = image_src.size
+        if width < shape[0] or height < shape[1]:
+            # Upsize if the image is smaller than the target shape
+            new_shape = (max(width, shape[0]), max(height, shape[1]))
+        else:
+            # Downsize if the image is larger than or equal to the target shape
+            new_shape = shape
+
+        image_dst = resize_image(image_src, new_shape, interpolation)
         save_image(image_dst, path_dst)
 
 def main():
     cmdargs = parse_cmdargs()
     images = collect_images(cmdargs.source)
 
-    downscale_images(
+    resize_images(
         cmdargs.source, images, cmdargs.target, cmdargs.shape,
         cmdargs.interpolation
     )
 
 if __name__ == '__main__':
     main()
-

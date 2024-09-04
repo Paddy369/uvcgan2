@@ -107,6 +107,7 @@ def evaluate_metrics_matrix(root, subdirs, kid_size):
 
 def save_metrics(root, metrics):
     metrics.to_csv(os.path.join(root, 'fid_metrics.csv'), index = False)
+    print("Saving Path: " + os.path.join(root, 'fid_metrics.csv'))
 
 def main():
     cmdargs = parse_cmdargs()
